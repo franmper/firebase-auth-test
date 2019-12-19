@@ -1,16 +1,36 @@
 let q = x => document.querySelector(x);
 
-
 // status
-auth.onAuthStateChanged(user => {   
+auth.onAuthStateChanged(user => {  
     if (user) {
-        db.collection("guides").get().then(snapshot => {
+        db.collection("guides").onSnapshot(snapshot => {
             setupGuides(snapshot.docs);
+            setupUi(user);
+        }).catch(err => {
+            console.log(err.message);
         })
     } else {
-        setupGuides([])
+        setupUi();
+        setupGuides([]);
     }
 });
+
+// create guides
+
+const createForm = q("#create-form");
+createForm.addEventListener('submit', e => {
+    e.preventDefault();
+    db.collection('guides').add({
+        title: createForm['title'].value,
+        content: createForm['content'].value
+    }).then(() => {
+        const modal = q('#modal-create');
+        M.Modal.getInstance(modal).close();
+        createForm.reset();
+    }).catch(err => {
+        alert(err.message);
+    })
+})
 
  // singup
  const signupForm = q('#signup-form');
