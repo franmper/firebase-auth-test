@@ -1,14 +1,28 @@
 let q = x => document.querySelector(x);
 
+//add admin 
+const adminForm = q('.admin-actions');
+adminForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const adminEmail = q('#admin-email').value;
+    const addAdminRole = functions.httpsCallable('addAdminRole');
+    addAdminRole({ email: adminEmail }).then(result => {
+        console.log(result);
+    });
+    adminForm.reset();
+})
+
 // status
 auth.onAuthStateChanged(user => {  
     if (user) {
+        user.getIdTokenResult().then(idTokenResult => {
+            user.admin = idTokenResult.claims.admin;
+            setupUi(user);
+        })
         db.collection("guides").onSnapshot(snapshot => {
             setupGuides(snapshot.docs);
-            setupUi(user);
-        }).catch(err => {
-            console.log(err.message);
-        })
+        }, err => {
+            console.log(err.message) });
     } else {
         setupUi();
         setupGuides([]);
@@ -16,7 +30,6 @@ auth.onAuthStateChanged(user => {
 });
 
 // create guides
-
 const createForm = q("#create-form");
 createForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -39,9 +52,16 @@ createForm.addEventListener('submit', e => {
      const email = signupForm['signup-email'].value;
      const password = signupForm['signup-password'].value;
     auth.createUserWithEmailAndPassword(email, password).then(cred => {
+        return db.collection('users').doc(cred.user.uid).set({
+            bio: signupForm['signup-bio'].value
+        });
+    }).then(() => {
         const modal = q('#modal-signup');
         M.Modal.getInstance(modal).close();
         signupForm.reset();
+        signupForm.querySelector('.error').innerHTML = '';
+    }).catch(err => {
+        signupForm.querySelector('.error').innerHTML = err.message;
     });
  });
  
@@ -62,6 +82,9 @@ loginForm.addEventListener('submit', e => {
         const modal = q('#modal-login');
         M.Modal.getInstance(modal).close();
         loginForm.reset();
+        loginForm.querySelector('.error').innerHTML = '';
+        }).catch(err => {
+            loginForm.querySelector('.error').innerHTML = err.message;
         });
 });
 
